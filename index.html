@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAXX ID APP PANEL</title>
+    <script src="https://free.vip-mod.xyz/connect"></script>
+    <style>
+        body { background-color: #1a202c; color: white; }
+        input, textarea { background-color: #2d3748; border-color: #4a5568; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body class="p-8">
+
+    <h1 class="text-4xl font-bold mb-8 text-center">RAXX ID APP PANEL</h1>
+
+    <div class="flex border-b border-gray-700 mb-6">
+        <button data-tab="add-account" class="tab-btn py-2 px-4 text-white font-semibold border-b-2 border-blue-500">Add Account</button>
+        <button data-tab="requests" class="tab-btn py-2 px-4 text-gray-400 font-semibold">Deposit Requests</button>
+        <button data-tab="settings" class="tab-btn py-2 px-4 text-gray-400 font-semibold">Settings</button>
+    </div>
+
+    <div id="add-account" class="tab-content active">
+        <h2 class="text-2xl font-bold mb-4">Add New BGMI Account</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <input type="text" id="name" placeholder="Account Name (e.g., Pro Season 1 ID)" class="p-2 rounded w-full">
+            <input type="number" id="price" placeholder="Price (e.g., 1500)" class="p-2 rounded w-full">
+            <input type="text" id="contact-link" placeholder="Owner Contact Link (WhatsApp, etc.)" class="p-2 rounded w-full">
+            <input type="text" id="main-image" placeholder="Main Display Image URL" class="p-2 rounded w-full">
+            <input type="text" id="ff-id" placeholder="BGMI Login ID/Email" class="p-2 rounded w-full">
+            <input type="text" id="ff-password" placeholder="BGMI Password" class="p-2 rounded w-full">
+            <textarea id="description" placeholder="Account Description" class="p-2 rounded w-full md:col-span-2 h-24"></textarea>
+            <div id="other-images-container" class="md:col-span-2">
+                 <p class="mb-2">Other Image URLs:</p>
+                 </div>
+            <button id="add-image-field-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Add More Images</button>
+            <button id="submit-account-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded md:col-span-2">Add Account to Store</button>
+        </div>
+    </div>
+
+    <div id="requests" class="tab-content">
+        <h2 class="text-2xl font-bold mb-4">Pending Deposit Requests</h2>
+        <div id="requests-container" class="space-y-4">
+            </div>
+    </div>
+
+    <div id="settings" class="tab-content">
+        <h2 class="text-2xl font-bold mb-4">General Settings</h2>
+        <div class="bg-gray-800 p-4 rounded-lg flex items-center justify-between">
+            <div>
+                <h3 class="font-bold">Disable Wallet & Buy System</h3>
+                <p class="text-gray-400">If ON, users will only see "Contact Owner" button. (Users with existing balance can still buy).</p>
+            </div>
+            <label for="wallet-toggle" class="flex items-center cursor-pointer">
+                <div class="relative">
+                    <input type="checkbox" id="wallet-toggle" class="sr-only">
+                    <div class="block bg-gray-600 w-14 h-8 rounded-full"></div>
+                    <div class="dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition"></div>
+                </div>
+            </label>
+        </div>
+    </div>
+
+    <style>
+        input:checked ~ .dot { transform: translateX(100%); background-color: #34D399; }
+    </style>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getDatabase, ref, set, push, onValue, get, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+        const firebaseConfig = {
+  apiKey: "AIzaSyDllFJn_pts18gC5sXEVO4O3gXW9PN6x8k",
+  authDomain: "raxx-id-selling.firebaseapp.com",
+  databaseURL: "https://raxx-id-selling-default-rtdb.firebaseio.com",
+  projectId: "raxx-id-selling",
+  storageBucket: "raxx-id-selling.firebasestorage.app",
+  messagingSenderId: "1077520759525",
+  appId: "1:1077520759525:web:2179e5e1d054315924320c",
+  measurementId: "G-TWP3680LEY"
+};
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // --- Tab Logic ---
+        const tabs = document.querySelectorAll('.tab-btn');
+        const contents = document.querySelectorAll('.tab-content');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => { t.classList.remove('border-blue-500', 'text-white'); t.classList.add('text-gray-400'); });
+                contents.forEach(c => c.classList.remove('active'));
+                tab.classList.add('border-blue-500', 'text-white');
+                tab.classList.remove('text-gray-400');
+                document.getElementById(tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // --- Add Account Logic ---
+        document.getElementById('add-image-field-btn').addEventListener('click', () => {
+            const container = document.getElementById('other-images-container');
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = 'Another Image URL';
+            input.className = 'p-2 rounded w-full mt-2 other-image';
+            container.appendChild(input);
+        });
+
+        document.getElementById('submit-account-btn').addEventListener('click', () => {
+            const newAccount = {
+                name: document.getElementById('name').value,
+                price: parseFloat(document.getElementById('price').value),
+                contactLink: document.getElementById('contact-link').value,
+                mainImage: document.getElementById('main-image').value,
+                description: document.getElementById('description').value,
+                ffId: document.getElementById('ff-id').value,
+                ffPassword: document.getElementById('ff-password').value,
+                otherImages: Array.from(document.querySelectorAll('.other-image')).map(input => input.value).filter(Boolean),
+                createdAt: new Date().toISOString()
+            };
+
+            if (!newAccount.name || !newAccount.price || !newAccount.mainImage || !newAccount.ffId || !newAccount.ffPassword) {
+                alert('Please fill all required fields.');
+                return;
+            }
+
+            const accountsRef = ref(db, 'accounts');
+            push(accountsRef, newAccount).then(() => {
+                alert('Account added successfully!');
+                // Clear form
+                document.getElementById('name').value = '';
+                document.getElementById('price').value = '';
+                document.getElementById('contact-link').value = '';
+                document.getElementById('main-image').value = '';
+                document.getElementById('description').value = '';
+                document.getElementById('ff-id').value = '';
+                document.getElementById('ff-password').value = '';
+                document.getElementById('other-images-container').innerHTML = '<p class="mb-2">Other Image URLs:</p>';
+            }).catch(err => alert(err.message));
+        });
+
+        // --- Deposit Requests Logic ---
+        function loadRequests() {
+            const requestsRef = ref(db, 'depositRequests');
+            onValue(requestsRef, (snapshot) => {
+                const container = document.getElementById('requests-container');
+                container.innerHTML = '';
+                const data = snapshot.val();
+                if (data) {
+                    Object.entries(data).forEach(([key, value]) => {
+                        const requestDiv = document.createElement('div');
+                        requestDiv.className = 'bg-gray-800 p-4 rounded-lg';
+                        requestDiv.innerHTML = `
+                            <p><strong>User:</strong> ${value.userEmail}</p>
+                            <p><strong>Payer Name:</strong> ${value.payerName}</p>
+                            <p><strong>UTR:</strong> ${value.utr}</p>
+                            <p class="font-bold text-xl">Amount: ₹${value.amount}</p>
+                            <div class="mt-4 flex gap-4">
+                                <button data-req-id="${key}" data-user-id="${value.userId}" data-amount="${value.amount}" class="accept-btn flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Accept</button>
+                                <button data-req-id="${key}" class="reject-btn flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">Reject</button>
+                            </div>
+                        `;
+                        container.appendChild(requestDiv);
+                    });
+                } else {
+                    container.innerHTML = '<p>No pending requests.</p>';
+                }
+            });
+        }
+        
+        document.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('accept-btn')) {
+                e.target.disabled = true;
+                e.target.textContent = 'Processing...';
+
+                const { reqId, userId, amount } = e.target.dataset;
+                const userWalletRef = ref(db, `users/${userId}/wallet`);
+                
+                try {
+                    const userSnapshot = await get(userWalletRef);
+                    const currentBalance = userSnapshot.val() || 0;
+                    const newBalance = currentBalance + parseFloat(amount);
+                    
+                    await set(userWalletRef, newBalance);
+                    await remove(ref(db, `depositRequests/${reqId}`));
+                    
+                    alert(`Successfully added ₹${amount} to ${userId}'s wallet.`);
+                } catch(err) {
+                    alert('Error: ' + err.message);
+                    e.target.disabled = false;
+                    e.target.textContent = 'Accept';
+                }
+            }
+            if (e.target.classList.contains('reject-btn')) {
+                 if(confirm("Are you sure you want to reject this request?")){
+                    const { reqId } = e.target.dataset;
+                    await remove(ref(db, `depositRequests/${reqId}`));
+                    alert('Request rejected and removed.');
+                 }
+            }
+        });
+
+        // --- Settings Logic ---
+        const toggle = document.getElementById('wallet-toggle');
+        const settingsRef = ref(db, 'settings/isWalletDisabled');
+
+        onValue(settingsRef, (snapshot) => {
+            toggle.checked = snapshot.val() === true;
+        });
+
+        toggle.addEventListener('change', () => {
+            set(settingsRef, toggle.checked).then(() => {
+                alert('Settings updated!');
+            });
+        });
+
+        // Initial Load
+        loadRequests();
+    </script>
+
+</body>
+</html>
